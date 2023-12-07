@@ -14,7 +14,7 @@ const int grid_tex_size = 6;
 const int grid_width = width / grid_tex_size;
 const int grid_height = (height / grid_tex_size) - 1;
 
-const int wait = 150; // Lower this if on native emulator bcs its slower
+const int wait = 0; // Lower this if on native emulator bcs its slower
 int waiti = 0;
 bool paused = false;
 const int mouse_sleep_time = 4;
