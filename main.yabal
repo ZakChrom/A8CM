@@ -14,7 +14,7 @@ const int grid_tex_size = 6;
 const int grid_width = width / grid_tex_size;
 const int grid_height = (height / grid_tex_size) - 1;
 
-const int wait = 0;//175; // Lower this if on native emulator bcs its slower
+const int wait = 175; // Lower this if on native emulator bcs its slower
 int waiti = 0;
 bool paused = false;
 const int mouse_sleep_time = 4;
@@ -135,9 +135,9 @@ void render() {
                         _ => 0
                     };
                     var col = (((int)thing)-39) * cellColor(cell.type);
-                    if (cell.exists && col == 0) {
+                    /*if (cell.exists && col == 0) {
                         col = get_color(255, 0, 0);
-                    }
+                    }*/
                     if (mx == gx && my == gy && mouse_sleep > 0) {
                         var off2 = (placement_type * 6 * 6) + i;
                         var thing2 = placement_rotation switch {
@@ -453,9 +453,7 @@ void do_rotators() {
             int off = y * grid_width + x;
 			Cell cell = grid[off];
             
-			if (cell.updated == false && cell.exists) {
-                if (cell.type != 4 || cell.type != 5) continue;
-
+			if (cell.updated == false && (cell.type == 4 || cell.type == 5)) {
                 cell.updated = true;
                 int r_amount = 1;
                 if (cell.type == 4) {
@@ -464,39 +462,39 @@ void do_rotators() {
 
                 int o1 = y * grid_width + (x+1);
                 Cell c1 = grid[o1];
-                //if (c1.exists) {
+                if (c1.exists) {
                     Cell t1 = { type: c1.type, rot: c1.rot + r_amount, exists: 1 };
                     if (o1 < grid_width*grid_height) {
                         grid[o1] = t1;
                     }
-                //}
+                }
 
                 int o2 = (y-1) * grid_width + x;
                 Cell c2 = grid[o2];
-                //if (c2.exists) {
+                if (c2.exists) {
                     Cell t2 = { type: c2.type, rot: c2.rot + r_amount, exists: 1 };
                     if (o2 < grid_width*grid_height) {
                         grid[o2] = t2;
                     }
-                //}
+                }
 
                 int o3 = y * grid_width + (x-1);
                 Cell c3 = grid[o3];
-                //if (c3.exists) {
+                if (c3.exists) {
                     Cell t3 = { type: c3.type, rot: c3.rot + r_amount, exists: 1 };
                     if (o3 < grid_width*grid_height) {
                         grid[o3] = t3;
                     }
-                //}
+                }
 
                 int o4 = (y+1) * grid_width + x;
                 Cell c4 = grid[o4];
-                //if (c4.exists) {
+                if (c4.exists) {
                     Cell t4 = { type: c4.type, rot: c4.rot + r_amount, exists: 1 };
                     if (o4 < grid_width*grid_height) {
                         grid[o4] = t4;
                     }
-                //}
+                }
 			}
 		}
 	}
@@ -717,9 +715,9 @@ while (true) {
     int off = my * grid_width + mx;
 
     if (m.left == 1) {
-        grid[off] = { type: placement_type, rot: placement_rotation };
+        grid[off] = { type: placement_type, rot: placement_rotation, exists: 1 };
     } else if (m.right == 1) {
-        grid[off] = { type: 0, rot: 0 };
+        grid[off] = { type: 0, rot: 0, exists: 0 };
     }
 
     if (pressed == 32768 && key != lastKey) {
