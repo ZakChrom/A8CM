@@ -1,0 +1,772 @@
+// TODO: Directions are wrong
+// TODO: Fix game sometimes freezing
+// TODO: Movers vanish when moving out of bounds (left and top side)
+// TODO: Generators behave wrong
+// TODO?: Use signed ints. I tried converting my code to use it but it broke everything so idk
+
+const var screen = create_pointer(53870, 1);
+const int width = 108;
+const int height = 108;
+const var mouse = create_pointer<Mouse>(53501, 1);
+
+const var grid = create_pointer<Cell>(10420,1);
+const int grid_tex_size = 6;
+const int grid_width = width / grid_tex_size;
+const int grid_height = (height / grid_tex_size) - 1;
+
+const int wait = 0;//175; // Lower this if on native emulator bcs its slower
+int waiti = 0;
+bool paused = false;
+const int mouse_sleep_time = 4;
+int mouse_sleep = 0;
+int prev_mouse_x = 0;
+int prev_mouse_y = 0;
+int tick = 0;
+int placement_type = 0;
+int placement_rotation = 0;
+int lastKey = 168;
+
+const int mouse_color = get_color(36, 36, 36);
+const int ui_color = get_color(66, 135, 245);
+
+const var textures_left  = "000000000000000000000000000000000000111111110011101101101101110011111111000000000100011110011110000100000000000000010100011110011110010100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_down  = "000000000000000000000000000000000000111111110011101101101101110011111111000000001100001100011110001100000000000000011110001100011110001100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_right = "000000000000000000000000000000000000111111110011101101101101110011111111000000001000011110011110001000000000000000001010011110011110001010000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_up    = "000000000000000000000000000000000000111111110011101101101101110011111111000000001100011110001100001100000000000000001100011110001100011110000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
+
+const var RIGHT = "RIGHT"
+const var DOWN = "DOWN"
+const var LEFT = "LEFT"
+const var UP = "UP"
+
+const var EMPTY = "EMPTY"
+const var WALL = "WALL"
+const var MOVER = "MOVER"
+const var GENERATOR = "GENERATOR"
+const var ROTATOR_CW = "ROTATOR_CW"
+const var ROTATOR_CCW = "ROTATOR_CCW"
+const var PUSH = "PUSH"
+const var SLIDE = "SLIDE"
+const var TRASH = "TRASH"
+const var ENEMY = "ENEMY"
+
+inline int get_color(int r, int g, int b) => (r / 8 << 10) + (g / 8 << 5) + (b / 8)
+inline char getKey() => asm {
+    LDLGE 1
+    HERE 53500
+    BNK 0
+};
+
+inline int cellColor(int type) => type switch {
+    0 => 0,
+    1 => get_color(88,  88, 88),
+    2 => get_color(76,  121, 216),
+    3 => get_color(2,   205, 113),
+    4 => get_color(225, 103, 1),
+    5 => get_color(0,   203, 182),
+    6 => get_color(246, 194, 57),
+    7 => get_color(246, 194, 57),
+    8 => get_color(155,  0,  206),
+    9 => get_color(208,  12,  34),
+    _ => 0
+}
+
+const var chars = create_pointer(53546, 1)
+
+// Stolen from float.yabal
+var offset = 0
+void write(int c) {
+    chars[offset] = c
+    offset++
+}
+
+void write_int(int value) {
+    var reverser = create_pointer(65530, 0)
+    var i = 0
+    for (var i = 0; i < 5; i++){
+        reverser[i] = 0
+    }
+    while (value > 0) {
+        var char = (value % 10) switch {
+            1 => '1',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5',
+            6 => '6',
+            7 => '7',
+            8 => '8',
+            9 => '9',
+            _ => '0'
+        }
+        reverser[i] = char
+        value = value / 10
+        i += 1
+    }
+    for (var i = 0; i < 5; i++){
+        write(reverser[4-i])
+    }
+}
+
+void render() {
+    Mouse m = mouse[0];
+    int mx = m.x / grid_tex_size;
+    int my = m.y / grid_tex_size;
+
+    for (int gy = 0; gy < grid_height; gy++) {
+        for (int gx = 0; gx < grid_width; gx++) {
+            var offset = gy * grid_width + gx;
+            Cell cell = grid[offset];
+
+            int rot = cell.rot;
+            var x = gx * grid_tex_size;
+            var y = gy * grid_tex_size;
+            
+            var i = 0;
+            for (int sy = y; sy < y + grid_tex_size; sy++) {
+                for (int sx = x; sx < x + grid_tex_size; sx++) {
+                    var offset2 = sy * width + sx;
+                    var off = (cell.type * 6 * 6) + i;
+                    var thing = cell.rot switch {
+                        0 => textures_left[off],
+                        3 => textures_down[off],
+                        2 => textures_right[off],
+                        1 => textures_up[off],
+                        _ => 0
+                    };
+                    var col = (((int)thing)-39) * cellColor(cell.type);
+                    if (cell.exists && col == 0) {
+                        col = get_color(255, 0, 0);
+                    }
+                    if (mx == gx && my == gy && mouse_sleep > 0) {
+                        var off2 = (placement_type * 6 * 6) + i;
+                        var thing2 = placement_rotation switch {
+                            0 => textures_left[off2],
+                            3 => textures_down[off2],
+                            2 => textures_right[off2],
+                            1 => textures_up[off2],
+                            _ => 0
+                        };
+                        col = (((int)thing2)-39) * cellColor(placement_type);
+                    }
+                    screen[offset2] = col;
+                    i++;
+                }
+            }
+        }
+    }
+    for (int y = grid_height * grid_tex_size; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            var off = y * width + x;
+            screen[off] = ui_color;
+        }
+    }
+    offset = 13;
+    write_int(tick);
+
+    int offset = 306;
+    if (placement_rotation == 0) {
+        for (int i = 0; i < sizeof(RIGHT); i++) {
+            chars[i + offset] = RIGHT[i];
+        }
+    } else if (placement_rotation == 3) {
+        for (int i = 0; i < sizeof(DOWN); i++) {
+            chars[i + offset] = DOWN[i];
+        }
+    } else if (placement_rotation == 2) {
+        for (int i = 0; i < sizeof(LEFT); i++) {
+            chars[i + offset] = LEFT[i];
+        }
+    } else {
+        for (int i = 0; i < sizeof(UP); i++) {
+            chars[i + offset] = UP[i];
+        }
+    }
+
+    int offset = 312;
+    if (placement_type == 0) {
+        for (int i = 0; i < sizeof(EMPTY); i++) {
+            chars[i + offset] = EMPTY[i];
+        }
+    } else if (placement_type == 1) {
+        for (int i = 0; i < sizeof(WALL); i++) {
+            chars[i + offset] = WALL[i];
+        }
+    } else if (placement_type == 2) {
+        for (int i = 0; i < sizeof(MOVER); i++) {
+            chars[i + offset] = MOVER[i];
+        }
+    } else if (placement_type == 3) {
+        for (int i = 0; i < sizeof(GENERATOR); i++) {
+            chars[i + offset] = GENERATOR[i];
+        }
+    } else if (placement_type == 4) {
+        for (int i = 0; i < sizeof(ROTATOR_CW); i++) {
+            chars[i + offset] = ROTATOR_CW[i];
+        }
+    } else if (placement_type == 5) {
+        for (int i = 0; i < sizeof(ROTATOR_CCW); i++) {
+            chars[i + offset] = ROTATOR_CCW[i];
+        }
+    } else if (placement_type == 6) {
+        for (int i = 0; i < sizeof(PUSH); i++) {
+            chars[i + offset] = PUSH[i];
+        }
+    } else if (placement_type == 7) {
+        for (int i = 0; i < sizeof(SLIDE); i++) {
+            chars[i + offset] = SLIDE[i];
+        }
+    } else if (placement_type == 8) {
+        for (int i = 0; i < sizeof(TRASH); i++) {
+            chars[i + offset] = TRASH[i];
+        }
+    } else if (placement_type == 9) {
+        for (int i = 0; i < sizeof(ENEMY); i++) {
+            chars[i + offset] = ENEMY[i];
+        }
+    }
+}
+
+void clear() {
+    for (int i = 0; i < width*height; i++) {
+        screen[i] = 0;
+    }
+    for (int i = 0; i < 18*18; i++) {
+        chars[i] = 0;
+    }
+}
+
+inline Vec2 to_vector(int rot) => rot switch {
+    0 => { x: 1,   y: 0   },
+    1 => { x: 0,   y: 255 },
+    2 => { x: 255, y: 0   },
+    3 => { x: 0,   y: 1   },
+    _ => { x: 0,   y: 0   }
+}
+
+inline bool is_trash(Cell cell) => cell.type switch {
+    8 => true,
+    9 => true,
+    _ => false
+}
+
+inline bool can_move(Cell cell, int rot) => cell.type switch {
+    1 => false,
+    7 => cell.rot % 2 == rot % 2,
+    _ => true
+}
+
+void push(int x, int y, int rot, int force, Cell pushing, bool setupdated) {
+    var tx = x;
+    var ty = y;
+    var orig_rot = rot;
+
+    // Check if the cell can be pushed.
+    while (true) {
+        if (tx >= grid_width || ty >= grid_height) { return; }
+
+        var off = ty * grid_width + tx;
+        Cell cell = grid[off];
+        if (cell.exists) {
+            if (cell.type == 2) {
+                if (cell.rot == rot) {
+                    force += 1;
+                } else if (cell.rot == ((rot + 2) & 3)) {
+                    //force -= 1;
+                }
+            }
+
+            if (is_trash(cell)) { break; }
+
+            if (can_move(cell, rot) == false) { return; }
+
+            var vec = to_vector(rot);
+
+            if (vec.x == 255) {
+                tx -= 1;
+            } else {
+                tx += vec.x;
+            }
+
+            if (vec.y == 255) {
+                ty -= 1;
+            } else {
+                ty += vec.y;
+            }
+        } else { break; }
+
+        if (force == 0) { return; }
+        if (tx == x && ty == y && rot == orig_rot) { break; }
+    }
+
+    // Push the cell and all following.
+    // Works like this:
+    //  >=#   replacement cell is air
+    //  ^
+    // replace cell with air and store the old cell in the replacement cell
+    // then go forward one cell
+    //   =#   replacement cell is mover
+    //   ^
+    // repeat ^
+    //   >#   replacement cell is slide
+    //   >=   replacement cell is push
+    //   >=#
+    // we moved forward one cell!
+
+    rot = orig_rot;
+    Cell next_cell = pushing;
+
+    while (true) {
+        if (next_cell.exists) {
+            // Update mover cell `.updated`.
+            if (next_cell.type == 2 && next_cell.rot == rot && setupdated) {
+                next_cell.updated = true;
+            }
+        }
+
+        int off = y * grid_width + x;
+        Cell cell = grid[off];
+
+        if (cell.exists) {
+            // When trash then break.
+            if (cell.type == 9) {
+                // Cell is deleted and enemy destroyed.
+                grid[off] = {};
+                break;
+            } else if (is_trash(cell)) {
+                // Cell is trashed.
+                break;
+            }
+        }
+
+        // Push cell and store current one in next push replacement.
+        grid[off] = next_cell;
+
+        Cell c = grid[off];
+
+        next_cell = cell;
+        if (tx == x && ty == y) { break; }
+
+        Vec2 vec = to_vector(rot);
+
+        if (vec.x == 255) {
+            x -= 1;
+        } else {
+            x += vec.x;
+        }
+
+        if (vec.y == 255) {
+            y -= 1;
+        } else {
+            y += vec.y;
+        }
+    }
+}
+
+const Cell emptycell = { type: 0, rot: 0, updated: 0, exists: 0 };
+const var dir = "0231";
+
+/*void loop_each(func<Cell, int, int, void> callback) {
+    for (int y = 0; y < grid_height; y++) {
+		for (int x = 0; x < grid_width; x++) {
+            int off = y * grid_width + x;
+			Cell cell = grid[off];
+            if (cell.exists) {
+                callback(cell, x, y);
+            }
+		}
+	}
+}*/
+
+/*void loop_each_dir(func<Cell, int, int, int, void> callback) {
+    asm {
+        AIN @callback
+        BNK 5
+        BNK 0
+    };
+    for (int i = 0; i < 4; i++) {
+        int r = ((int)dir[i])-39;
+		if (r == 0 || r == 3) {
+            for (int y = grid_height; y > 0; y--) {
+				for (int x = grid_width; x > 0; x--) {
+                    int off = (y-1) * grid_width + (x-1);
+					Cell cell = grid[off];
+                    if (cell.exists) {
+                        callback(cell, x, y, r);
+                    }
+				}
+			}
+		} else {
+			for (int y = 0; y < grid_height; y++) {
+				for (int x = 0; x < grid_width; x++) {
+                    int off = y * grid_width + x;
+					Cell cell = grid[off];
+                    if (cell.exists) {
+                        callback(cell, x, y, r);
+                    }
+				}
+			}
+		}
+	}
+}*/
+
+void do_movers() {
+    for (int i = 0; i < 4; i++) {
+        int r = ((int)dir[i])-39;
+		if (r == 0 || r == 3) {
+            for (int y = grid_height; y > 0; y--) {
+				for (int x = grid_width; x > 0; x--) {
+                    var off = (y-1) * grid_width + (x-1);
+					Cell cell = grid[off];
+                    if (cell.exists) {
+                        if (cell.type == 2 && cell.rot == r && !cell.updated) {
+                            cell.updated = true;
+                            /*inspect(x - 1);
+                            inspect(y - 1);
+                            inspect(69);*/
+                            push(x - 1, y - 1, r, 0, emptycell, true);
+                        }
+                    }
+				}
+			}
+		} else {
+			for (int y = 0; y < grid_height; y++) {
+				for (int x = 0; x < grid_width; x++) {
+                    var off = y * grid_width + x;
+					Cell cell = grid[off];
+                    if (cell.exists) {
+                        if (cell.type == 2 && cell.rot == r && !cell.updated) {
+                            cell.updated = true;
+                            //push(int x, int y, int rot, int force, Cell pushing, bool setupdated)
+                            push(x, y, r, 0, emptycell, true);
+                        }
+                    }
+				}
+			}
+		}
+	}
+}
+
+void do_rotators() {
+	for (int y = 0; y < grid_height; y++) {
+		for (int x = 0; x < grid_width; x++) {
+            int off = y * grid_width + x;
+			Cell cell = grid[off];
+            
+			if (cell.updated == false && cell.exists) {
+                if (cell.type != 4 || cell.type != 5) continue;
+
+                cell.updated = true;
+                int r_amount = 1;
+                if (cell.type == 4) {
+                    r_amount = 3;
+                }
+
+                int o1 = y * grid_width + (x+1);
+                Cell c1 = grid[o1];
+                //if (c1.exists) {
+                    Cell t1 = { type: c1.type, rot: c1.rot + r_amount, exists: 1 };
+                    if (o1 < grid_width*grid_height) {
+                        grid[o1] = t1;
+                    }
+                //}
+
+                int o2 = (y-1) * grid_width + x;
+                Cell c2 = grid[o2];
+                //if (c2.exists) {
+                    Cell t2 = { type: c2.type, rot: c2.rot + r_amount, exists: 1 };
+                    if (o2 < grid_width*grid_height) {
+                        grid[o2] = t2;
+                    }
+                //}
+
+                int o3 = y * grid_width + (x-1);
+                Cell c3 = grid[o3];
+                //if (c3.exists) {
+                    Cell t3 = { type: c3.type, rot: c3.rot + r_amount, exists: 1 };
+                    if (o3 < grid_width*grid_height) {
+                        grid[o3] = t3;
+                    }
+                //}
+
+                int o4 = (y+1) * grid_width + x;
+                Cell c4 = grid[o4];
+                //if (c4.exists) {
+                    Cell t4 = { type: c4.type, rot: c4.rot + r_amount, exists: 1 };
+                    if (o4 < grid_width*grid_height) {
+                        grid[o4] = t4;
+                    }
+                //}
+			}
+		}
+	}
+}
+
+void do_gens() {
+    for (int i = 0; i < 4; i++) {
+        int r = ((int)dir[i])-39;
+		if (r == 0 || r == 3) {
+            for (int y = grid_height; y > 0; y--) {
+				for (int x = grid_width; x > 0; x--) {
+                    int off = (y-1) * grid_width + (x-1);
+					Cell cell = grid[off];
+					Vec2 push_offset = to_vector(r);
+					Vec2 cell_offset = to_vector((r + 2) & 3);
+					if (cell.type == 3 && cell.rot == r && cell.updated == false && cell.exists) {
+						cell.updated = true;
+                        int temp1 = x - 1;
+                        int temp2 = y - 1;
+
+                        if (cell_offset.x == 255) {
+                            temp1 -= 1;
+                        } else {
+                            temp1 += cell_offset.x;
+                        }
+
+                        if (cell_offset.y == 255) {
+                            temp2 -= 1;
+                        } else {
+                            temp2 += cell_offset.y;
+                        }
+
+                        int off2 = temp2 * grid_width + temp1;
+						Cell cell2 = grid[off2];
+                        if (cell2.exists) {
+                            temp1 = x - 1;
+                            temp2 = y - 1;
+                            
+                            if (push_offset.x == 255) {
+                                temp1 -= 1;
+                            } else {
+                                temp1 += push_offset.x;
+                            }
+
+                            if (push_offset.y == 255) {
+                                temp2 -= 1;
+                            } else {
+                                temp2 += push_offset.y;
+                            }
+
+                            push(temp1, temp2, r, 1, cell2, false);
+                        }
+					}
+				}
+			}
+		} else {
+			for (int y = 0; y < grid_height; y++) {
+				for (int x = 0; x < grid_width; x++) {
+                    var off = y * grid_width + x;
+					Cell cell = grid[off];
+					Vec2 push_offset = to_vector(r);
+					Vec2 cell_offset = to_vector((r + 2) & 3);
+					if (cell.type == 3 && cell.rot == r && cell.updated == false && cell.exists) {
+						cell.updated = true;
+                        int temp1 = x - 1;
+                        int temp2 = y - 1;
+
+                        if (cell_offset.x == 255) {
+                            temp1 -= 1;
+                        } else {
+                            temp1 += cell_offset.x;
+                        }
+
+                        if (cell_offset.y == 255) {
+                            temp2 -= 1;
+                        } else {
+                            temp2 += cell_offset.y;
+                        }
+
+                        int off2 = temp2 * grid_width + temp1;
+						Cell cell2 = grid[off2];
+                        if (cell2.exists) {
+                            temp1 = x - 1;
+                            temp2 = y - 1;
+                            
+                            if (push_offset.x == 255) {
+                                temp1 -= 1;
+                            } else {
+                                temp1 += push_offset.x;
+                            }
+
+                            if (push_offset.y == 255) {
+                                temp2 -= 1;
+                            } else {
+                                temp2 += push_offset.y;
+                            }
+
+                            push(temp1, temp2, r, 1, cell2, false);
+                        }
+					}
+				}
+			}
+		}
+	}
+}
+
+// RIGHT 0
+// DOWN 1
+// LEFT 2
+// UP 3
+
+// EMPTY 0
+// WALL 1
+// MOVER 2
+// GENERATOR 3
+// ROTATOR_CW 4
+// ROTATOR_CCW 5
+// PUSH 6
+// SLIDE 7
+// TRASH 8
+// ENEMY 9
+
+void step() {
+    
+}
+
+grid[1] = { type: 4, rot: 0, exists: 1 };
+grid[22] = { type: 4, rot: 0, exists: 1 };
+grid[54] = { type: 4, rot: 0, exists: 1 };
+grid[75] = { type: 4, rot: 0, exists: 1 };
+
+grid[21] = { type: 2, rot: 0, exists: 1 };
+
+grid[90] = { type: 7, rot: 0, exists: 1 };
+grid[91] = { type: 3, rot: 0, exists: 1 };
+
+grid[108] = { type: 7, rot: 1, exists: 1 };
+grid[109] = { type: 3, rot: 0, exists: 1 };
+
+/*grid[54] = { type: 2, rot: 1, exists: 1 };
+grid[55] = { type: 3, rot: 1, exists: 1 };
+grid[56] = { type: 4, rot: 1, exists: 1 };
+grid[57] = { type: 5, rot: 1, exists: 1 };
+grid[58] = { type: 6, rot: 1, exists: 1 };
+grid[59] = { type: 7, rot: 1, exists: 1 };
+grid[60] = { type: 9, rot: 1, exists: 1 };
+grid[61] = { type: 8, rot: 1, exists: 1 };
+grid[62] = { type: 1, rot: 1, exists: 1 };
+grid[36] = { type: 2, rot: 2, exists: 1 };
+grid[37] = { type: 3, rot: 2, exists: 1 };
+grid[38] = { type: 4, rot: 2, exists: 1 };
+grid[39] = { type: 5, rot: 2, exists: 1 };
+grid[40] = { type: 6, rot: 2, exists: 1 };
+grid[41] = { type: 7, rot: 2, exists: 1 };
+grid[42] = { type: 9, rot: 2, exists: 1 };
+grid[43] = { type: 8, rot: 2, exists: 1 };
+grid[44] = { type: 1, rot: 2, exists: 1 };
+grid[18] = { type: 2, rot: 3, exists: 1 };
+grid[19] = { type: 3, rot: 3, exists: 1 };
+grid[20] = { type: 4, rot: 3, exists: 1 };
+grid[21] = { type: 5, rot: 3, exists: 1 };
+grid[22] = { type: 6, rot: 3, exists: 1 };
+grid[23] = { type: 7, rot: 3, exists: 1 };
+grid[24] = { type: 9, rot: 3, exists: 1 };
+grid[25] = { type: 8, rot: 3, exists: 1 };
+grid[26] = { type: 1, rot: 3, exists: 1 };
+grid[0] = { type: 2, rot: 0, exists: 1 };
+grid[1] = { type: 3, rot: 0, exists: 1 };
+grid[2] = { type: 4, rot: 0, exists: 1 };
+grid[3] = { type: 5, rot: 0, exists: 1 };
+grid[4] = { type: 6, rot: 0, exists: 1 };
+grid[5] = { type: 7, rot: 0, exists: 1 };
+grid[6] = { type: 9, rot: 0, exists: 1 };
+grid[7] = { type: 8, rot: 0, exists: 1 };
+grid[8] = { type: 1, rot: 0, exists: 1 };*/
+
+
+while (true) {
+    int key = (int)getKey();
+    int pressed = key & 32768;
+    key = key & 32767;
+
+    if (waiti >= wait) {
+        waiti = 0;
+        if (paused == false) {
+            do_gens();
+            do_rotators();
+            do_movers();
+            /*loop_each_dir((cell, x, y, r) => {
+                if (cell.type == 2 && cell.rot == r && !cell.updated) {
+                    cell.updated = true;
+                    push(x - 1, y - 1, r, 0, emptycell, true);
+                }
+            });*/
+            tick++;
+        }
+        for (int i = 0; i < grid_width*grid_height; i++) {
+            grid[i].updated = false;
+        }
+        mouse_sleep--;
+        if (mouse_sleep == 65535) {
+            mouse_sleep = 0;
+        }
+    }
+
+    Mouse m = mouse[0];
+    if (prev_mouse_x != m.x) {
+        prev_mouse_x = m.x;
+        mouse_sleep = mouse_sleep_time;
+    }
+    if (prev_mouse_y != m.y) {
+        prev_mouse_y = m.y;
+        mouse_sleep = mouse_sleep_time;
+    }
+    
+    int mx = m.x / grid_tex_size;
+    int my = m.y / grid_tex_size;
+    int off = my * grid_width + mx;
+
+    if (m.left == 1) {
+        grid[off] = { type: placement_type, rot: placement_rotation };
+    } else if (m.right == 1) {
+        grid[off] = { type: 0, rot: 0 };
+    }
+
+    if (pressed == 32768 && key != lastKey) {
+        if (key == 'q') {
+            placement_rotation = (placement_rotation + 1) & 0b11
+        } else if (key == 'e') {
+            if (placement_rotation == 0) {
+                placement_rotation = 3;
+            } else {
+                placement_rotation -= 1;
+            }
+        } else if (key == ' ') {
+            if (paused == true) {
+                paused = false;
+            } else {
+                paused = true;
+            }
+        } else {
+            if ((key >= ((int)'0')) && (key <= ((int)'9'))) {
+                placement_type = key - 39
+            }
+        }
+    }
+    
+    lastKey = key;
+    waiti++;
+
+    render();
+    asm { VBUF }
+    clear();
+}
+
+struct Vec2 {
+    int x: 8;
+    int y: 8;
+}
+
+struct Cell {
+    bool exists;
+    bool updated;
+    int type : 5;
+    int rot : 2;
+}
+
+struct Mouse {
+    int y : 7;
+    int x : 7;
+    int left : 1;
+    int right : 1;
+};
