@@ -1,0 +1,43 @@
+name: GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Clone
+        run: git clone https://github.com/YabalLang/compiler/ --depth=1
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build yabal
+        run: |
+          cd compiler/src/Yabal.Desktop
+          dotnet build
+
+      - name: Build a8cm
+        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64 build ./main.yabal
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: main
+          path: main.asm

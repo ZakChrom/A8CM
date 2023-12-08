@@ -1,0 +1,10 @@
+*
+!bitmap*
+!main.yabal
+!build.sh
+!README.md
+!main.asm
+!.gitignore
+!.github/
+!.github/workflows
+!.github/workflows/build.yml
