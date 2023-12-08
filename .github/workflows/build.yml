@@ -32,8 +32,10 @@ jobs:
         run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
 
       - name: Sed main.yabal
-        run: sed 's/const int wait = 150/const int wait = 0/' main.yabal > main.yabal
-        
+        run: |
+          sed 's/const int wait = 150/const int wait = 0/' main.yabal > main.yabal
+          cat main.yabal
+
       - name: Build a8cm (bot)
         run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal -o a8bot.asm
 
