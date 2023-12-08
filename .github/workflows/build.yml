@@ -36,9 +36,9 @@ jobs:
         name: Sed main.yabal
 
       - name: Build a8cm (bot)
-        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal -o a8bot.asm
+        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal -o bot.asm
 
-      - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm a8bot.asm
+      - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm bot.asm
         env:
           GITHUB_TOKEN: ${{ github.TOKEN }}
         shell: bash
