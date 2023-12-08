@@ -28,8 +28,8 @@ jobs:
       - name: Build a8cm
         run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
 
-      - name: Upload release
-        - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm
-          env:
-            GITHUB_TOKEN: ${{ github.TOKEN }}
-          shell: bash
+      - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+        shell: bash
+        name: Upload release
