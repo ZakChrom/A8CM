@@ -106,8 +106,6 @@ void write_int(int value) {
     }
 }
 
-import "./inspect.yabal"
-
 void render() {
     Mouse m = mouse[0];
     int mx = m.x / grid_tex_size;
