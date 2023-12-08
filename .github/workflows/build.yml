@@ -28,13 +28,15 @@ jobs:
           cd compiler/src/Yabal.Desktop
           dotnet build
 
-      - name: Build a8cm (normal)
-        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
-
       - name: Build a8cm (bot)
         run: |
           sed 's/const int wait = 150/const int wait = 0/' main.yabal > main.yabal
-          ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal -o a8bot.asm
+          ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
+          mv main.asm a8bot.asm
+
+      - name: Build a8cm (normal)
+        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
+
 
       - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm a8bot.asm
         env:
