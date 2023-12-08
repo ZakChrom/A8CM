@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
           dotnet build
 
       - name: Build a8cm
-        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64 build ./main.yabal
+        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
 
       - uses: actions/upload-artifact@v3
         with:
