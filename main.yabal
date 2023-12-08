@@ -630,8 +630,15 @@ void step() {
     do_movers();
 }
 
+// Nuke
+grid[190] = { type: 4, rot: 0, exists: 1 };
+grid[170] = { type: 3, rot: 2, exists: 1 };
+grid[171] = { type: 3, rot: 3, exists: 1 };
+grid[152] = { type: 3, rot: 1, exists: 1 };
+grid[153] = { type: 3, rot: 0, exists: 1 };
+
 // Vault
-grid[206] = { type: 8, rot: 0, exists: 1 };
+/*grid[206] = { type: 8, rot: 0, exists: 1 };
 grid[207] = { type: 8, rot: 0, exists: 1 };
 grid[185] = { type: 2, rot: 0, exists: 1 };
 grid[186] = { type: 6, rot: 0, exists: 1 };
@@ -670,7 +677,7 @@ grid[120] = { type: 7, rot: 0, exists: 1 };
 grid[24] = { type: 1, rot: 0, exists: 1 };
 grid[26] = { type: 2, rot: 3, exists: 1 };
 grid[6] = { type: 2, rot: 3, exists: 1 };
-grid[7] = { type: 3, rot: 0, exists: 1 };
+grid[7] = { type: 3, rot: 0, exists: 1 };*/
 
 // Idk
 /*grid[1] = { type: 4, rot: 0, exists: 1 };
