@@ -1,5 +1,4 @@
 // TODO: Directions are wrong
-// TODO: Generators behave wrong
 // TODO?: Use signed ints. I tried converting my code to use it but it broke everything so idk
 
 const var screen = create_pointer(53870, 1);
@@ -507,11 +506,11 @@ void do_gens() {
             for (int y = grid_height; y > 0; y--) {
 				for (int x = grid_width; x > 0; x--) {
                     int off = (y-1) * grid_width + (x-1);
-					Cell cell = grid[off];
-					Vec2 push_offset = to_vector(r);
-					Vec2 cell_offset = to_vector((r + 2) & 3);
+                    Cell cell = grid[off];
 					if (cell.type == 3 && cell.rot == r && cell.updated == false && cell.exists) {
 						cell.updated = true;
+                        Vec2 push_offset = to_vector(r);
+                        Vec2 cell_offset = to_vector((r + 2) & 3);
                         int temp1 = x - 1;
                         int temp2 = y - 1;
 
@@ -559,20 +558,22 @@ void do_gens() {
 				for (int x = 0; x < grid_width; x++) {
                     var off = y * grid_width + x;
 					Cell cell = grid[off];
-					Vec2 push_offset = to_vector(r);
-					Vec2 cell_offset = to_vector((r + 2) & 3);
 					if (cell.type == 3 && cell.rot == r && cell.updated == false && cell.exists) {
 						cell.updated = true;
-                        int temp1 = x - 1;
-                        int temp2 = y - 1;
+                        Vec2 push_offset = to_vector(r);
+                        Vec2 cell_offset = to_vector((r + 2) & 3);
+                        int temp1 = x;
+                        int temp2 = y;
 
                         if (cell_offset.x == 255) {
+                            if (temp1 == 0) { continue; }
                             temp1 -= 1;
                         } else {
                             temp1 += cell_offset.x;
                         }
 
                         if (cell_offset.y == 255) {
+                            if (temp2 == 0) { continue; }
                             temp2 -= 1;
                         } else {
                             temp2 += cell_offset.y;
@@ -581,16 +582,18 @@ void do_gens() {
                         int off2 = temp2 * grid_width + temp1;
 						Cell cell2 = grid[off2];
                         if (cell2.exists) {
-                            temp1 = x - 1;
-                            temp2 = y - 1;
+                            temp1 = x;
+                            temp2 = y;
                             
                             if (push_offset.x == 255) {
+                                if (temp1 == 0) { continue; }
                                 temp1 -= 1;
                             } else {
                                 temp1 += push_offset.x;
                             }
 
                             if (push_offset.y == 255) {
+                                if (temp2 == 0) { continue; }
                                 temp2 -= 1;
                             } else {
                                 temp2 += push_offset.y;
