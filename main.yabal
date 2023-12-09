@@ -27,9 +27,8 @@ bool debug = false;
 const int max_levels = 5;
 int level = 0;
 
-const int background_color = get_color(42, 42, 42);
 const int mouse_color = get_color(36, 36, 36);
-const int ui_color = get_color(66, 135, 245);
+const int ui_color = get_color(42, 42, 42);
 
 const var textures_left = "000000011110011110011110011110000000111111110011101101101101110011111111000000000100011110011110000100000000000000010100011110011110010100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
 const var textures_down = "000000011110011110011110011110000000111111110011101101101101110011111111000000001100001100011110001100000000000000011110001100011110001100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
@@ -113,6 +112,28 @@ void write_int(int value) {
     }
 }
 
+void render_placement_cell(int x, int y) {
+    int i = 0;
+    for (int sy = y; sy < y + grid_tex_size; sy++) {
+        for (int sx = x; sx < x + grid_tex_size; sx++) {
+            int offset2 = sy * width + sx;
+            int off2 = (placement_type * 6 * 6) + i;
+            var thing2 = placement_rotation switch {
+                0 => textures_left[off2],
+                3 => textures_down[off2],
+                2 => textures_right[off2],
+                1 => textures_up[off2],
+                _ => 0
+            };
+            int col = (((int)thing2)-39) * cellColor(placement_type);
+            if (col != 0) {
+                screen[offset2] = col;
+            }
+            i++;
+        }
+    }
+}
+
 void render() {
     Mouse m = mouse[0];
     int mx = m.x / grid_tex_size;
@@ -169,7 +190,7 @@ void render() {
     offset = 13;
     write_int(tick);
 
-    int offset = 306;
+    int offset = 307;
     if (placement_rotation == 0) {
         for (int i = 0; i < sizeof(RIGHT); i++) {
             chars[i + offset] = RIGHT[i];
@@ -188,7 +209,7 @@ void render() {
         }
     }
 
-    int offset = 312;
+    int offset = 313;
     if (placement_type == 0) {
         for (int i = 0; i < sizeof(EMPTY); i++) {
             chars[i + offset] = EMPTY[i];
@@ -230,11 +251,13 @@ void render() {
             chars[i + offset] = ENEMY[i];
         }
     }
+
+    render_placement_cell(0, 102);
 }
 
 void clear() {
     for (int i = 0; i < width*height; i++) {
-        screen[i] = background_color;
+        screen[i] = 0;
     }
     for (int i = 0; i < 18*18; i++) {
         chars[i] = 0;
