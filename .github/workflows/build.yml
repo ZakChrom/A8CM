@@ -23,6 +23,7 @@ jobs:
       - name: Get yabal
         run: |
           wget https://github.com/YabalLang/compiler/releases/latest/download/yabal-runtime-linux-x64.zip
+          chmod +x yabal
           unzip yabal-runtime-linux-x64.zip
 
       - name: Build a8cm (normal)
