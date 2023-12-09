@@ -625,6 +625,7 @@ void next_level() {
     reset();
     import_level(level);
 }
+
 void previous_level() {
     if (level == 0) {
         level = max_levels - 1;
@@ -759,7 +760,6 @@ void step() {
 }
 
 import_level(0)
-
 
 while (true) {
     int key = (int)getKey();
