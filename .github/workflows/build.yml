@@ -16,27 +16,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Clone
-        run: git clone https://github.com/YabalLang/compiler/ --depth=1
-
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build yabal
+      - name: Get yabal
         run: |
-          cd compiler/src/Yabal.Desktop
-          dotnet build
+          wget https://github.com/YabalLang/compiler/releases/latest/download/yabal-runtime-linux-x64.zip
+          unzip yabal-runtime-linux-x64.zip
 
       - name: Build a8cm (normal)
-        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal
+        run: ./yabal build ./main.yabal
 
       - run: sed -i 's/const int wait = 150/const int wait = 0/' main.yabal
         shell: bash
         name: Sed main.yabal
 
       - name: Build a8cm (bot)
-        run: ./compiler/src/Yabal.Desktop/bin/Debug/net8.0/linux-x64/yabal build ./main.yabal -o bot.asm
+        run: ./yabal build ./main.yabal -o bot.asm
 
       - run: gh release create `git log -n 1 --pretty=format:"%h"` main.asm bot.asm
         env:
