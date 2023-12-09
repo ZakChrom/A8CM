@@ -22,14 +22,19 @@ int tick = 0;
 int placement_type = 0;
 int placement_rotation = 0;
 int lastKey = 168;
+bool debug = false;
 
+const int max_levels = 4;
+int level = 0;
+
+const int background_color = get_color(42, 42, 42);
 const int mouse_color = get_color(36, 36, 36);
 const int ui_color = get_color(66, 135, 245);
 
-const var textures_left  = "000000000000000000000000000000000000111111110011101101101101110011111111000000000100011110011110000100000000000000010100011110011110010100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
-const var textures_down  = "000000000000000000000000000000000000111111110011101101101101110011111111000000001100001100011110001100000000000000011110001100011110001100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
-const var textures_right = "000000000000000000000000000000000000111111110011101101101101110011111111000000001000011110011110001000000000000000001010011110011110001010000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
-const var textures_up    = "000000000000000000000000000000000000111111110011101101101101110011111111000000001100011110001100001100000000000000001100011110001100011110000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_left = "000000011110011110011110011110000000111111110011101101101101110011111111000000000100011110011110000100000000000000010100011110011110010100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_down = "000000011110011110011110011110000000111111110011101101101101110011111111000000001100001100011110001100000000000000011110001100011110001100000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_right = "000000011110011110011110011110000000111111110011101101101101110011111111000000001000011110011110001000000000000000001010011110011110001010000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000000000011110011110000000000000000000011110011110001100001100000000000000010010000000000000011110000000";
+const var textures_up = "000000011110011110011110011110000000111111110011101101101101110011111111000000001100011110001100001100000000000000001100011110001100011110000000000000011110000010010000011110000000000000011110010000000010011110000000000000010010001100001100010010000000000000001100001100001100001100000000000000011110011110001100001100000000000000010010000000000000011110000000";
 
 const var RIGHT = "RIGHT"
 const var DOWN = "DOWN"
@@ -47,6 +52,9 @@ const var SLIDE = "SLIDE"
 const var TRASH = "TRASH"
 const var ENEMY = "ENEMY"
 
+const Cell emptycell = { type: 0, rot: 0, updated: 0, exists: 0 };
+const var dir = "0231";
+
 inline int get_color(int r, int g, int b) => (r / 8 << 10) + (g / 8 << 5) + (b / 8)
 inline char getKey() => asm {
     LDLGE 1
@@ -55,7 +63,7 @@ inline char getKey() => asm {
 };
 
 inline int cellColor(int type) => type switch {
-    0 => 0,
+    0 => get_color(48, 48, 48),
     1 => get_color(88,  88, 88),
     2 => get_color(76,  121, 216),
     3 => get_color(2,   205, 113),
@@ -71,7 +79,7 @@ inline int cellColor(int type) => type switch {
 const var chars = create_pointer(53546, 1)
 
 // Stolen from float.yabal
-var offset = 0
+int offset = 0
 void write(int c) {
     chars[offset] = c
     offset++
@@ -79,8 +87,8 @@ void write(int c) {
 
 void write_int(int value) {
     var reverser = create_pointer(65530, 0)
-    var i = 0
-    for (var i = 0; i < 5; i++){
+    int i = 0
+    for (int i = 0; i < 5; i++){
         reverser[i] = 0
     }
     while (value > 0) {
@@ -100,7 +108,7 @@ void write_int(int value) {
         value = value / 10
         i += 1
     }
-    for (var i = 0; i < 5; i++){
+    for (int i = 0; i < 5; i++){
         write(reverser[4-i])
     }
 }
@@ -112,18 +120,18 @@ void render() {
 
     for (int gy = 0; gy < grid_height; gy++) {
         for (int gx = 0; gx < grid_width; gx++) {
-            var offset = gy * grid_width + gx;
+            int offset = gy * grid_width + gx;
             Cell cell = grid[offset];
 
             int rot = cell.rot;
-            var x = gx * grid_tex_size;
-            var y = gy * grid_tex_size;
+            int x = gx * grid_tex_size;
+            int y = gy * grid_tex_size;
             
-            var i = 0;
+            int i = 0;
             for (int sy = y; sy < y + grid_tex_size; sy++) {
                 for (int sx = x; sx < x + grid_tex_size; sx++) {
-                    var offset2 = sy * width + sx;
-                    var off = (cell.type * 6 * 6) + i;
+                    int offset2 = sy * width + sx;
+                    int off = (cell.type * 6 * 6) + i;
                     var thing = cell.rot switch {
                         0 => textures_left[off],
                         3 => textures_down[off],
@@ -131,12 +139,12 @@ void render() {
                         1 => textures_up[off],
                         _ => 0
                     };
-                    var col = (((int)thing)-39) * cellColor(cell.type);
-                    /*if (cell.exists && col == 0) {
+                    int col = (((int)thing)-39) * cellColor(cell.type);
+                    if (cell.exists && col == 0 && debug) {
                         col = get_color(255, 0, 0);
-                    }*/
+                    }
                     if (mx == gx && my == gy && mouse_sleep > 0) {
-                        var off2 = (placement_type * 6 * 6) + i;
+                        int off2 = (placement_type * 6 * 6) + i;
                         var thing2 = placement_rotation switch {
                             0 => textures_left[off2],
                             3 => textures_down[off2],
@@ -154,7 +162,7 @@ void render() {
     }
     for (int y = grid_height * grid_tex_size; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            var off = y * width + x;
+            int off = y * width + x;
             screen[off] = ui_color;
         }
     }
@@ -226,7 +234,7 @@ void render() {
 
 void clear() {
     for (int i = 0; i < width*height; i++) {
-        screen[i] = 0;
+        screen[i] = background_color;
     }
     for (int i = 0; i < 18*18; i++) {
         chars[i] = 0;
@@ -254,15 +262,15 @@ inline bool can_move(Cell cell, int rot) => cell.type switch {
 }
 
 void push(int x, int y, int rot, int force, Cell pushing, bool setupdated) {
-    var tx = x;
-    var ty = y;
-    var orig_rot = rot;
+    int tx = x;
+    int ty = y;
+    int orig_rot = rot;
 
     // Check if the cell can be pushed.
     while (true) {
         if (tx >= grid_width || ty >= grid_height) { return; }
 
-        var off = ty * grid_width + tx;
+        int off = ty * grid_width + tx;
         Cell cell = grid[off];
         if (cell.exists) {
             if (cell.type == 2) {
@@ -362,9 +370,6 @@ void push(int x, int y, int rot, int force, Cell pushing, bool setupdated) {
     }
 }
 
-const Cell emptycell = { type: 0, rot: 0, updated: 0, exists: 0 };
-const var dir = "0231";
-
 /*void loop_each(func<Cell, int, int, void> callback) {
     for (int y = 0; y < grid_height; y++) {
 		for (int x = 0; x < grid_width; x++) {
@@ -415,7 +420,7 @@ void do_movers() {
 		if (r == 0 || r == 3) {
             for (int y = grid_height; y > 0; y--) {
 				for (int x = grid_width; x > 0; x--) {
-                    var off = (y-1) * grid_width + (x-1);
+                    int off = (y-1) * grid_width + (x-1);
 					Cell cell = grid[off];
                     if (cell.exists) {
                         if (cell.type == 2 && cell.rot == r && !cell.updated) {
@@ -431,7 +436,7 @@ void do_movers() {
 		} else {
 			for (int y = 0; y < grid_height; y++) {
 				for (int x = 0; x < grid_width; x++) {
-                    var off = y * grid_width + x;
+                    int off = y * grid_width + x;
 					Cell cell = grid[off];
                     if (cell.exists) {
                         if (cell.type == 2 && cell.rot == r && !cell.updated) {
@@ -556,7 +561,7 @@ void do_gens() {
 		} else {
 			for (int y = 0; y < grid_height; y++) {
 				for (int x = 0; x < grid_width; x++) {
-                    var off = y * grid_width + x;
+                    int off = y * grid_width + x;
 					Cell cell = grid[off];
 					if (cell.type == 3 && cell.rot == r && cell.updated == false && cell.exists) {
 						cell.updated = true;
@@ -608,6 +613,129 @@ void do_gens() {
 	}
 }
 
+void reset() {
+    tick = 0;
+    for (int i = 0; i < grid_width * grid_height; i++) {
+        grid[i] = {};
+    }
+}
+
+void next_level() {
+    level = (level + 1) % max_levels;
+    reset();
+    import_level(level);
+}
+void previous_level() {
+    if (level == 0) {
+        level = max_levels - 1;
+    } else {
+        level -= 1;
+    }
+    reset();
+    import_level(level);
+}
+
+void import_level(int level) {
+    if (level == 0) { // Test level
+        grid[1] = { type: 4, rot: 0, exists: 1 };
+        grid[22] = { type: 4, rot: 0, exists: 1 };
+        grid[54] = { type: 4, rot: 0, exists: 1 };
+        grid[75] = { type: 4, rot: 0, exists: 1 };
+
+        grid[21] = { type: 2, rot: 0, exists: 1 };
+
+        grid[90] = { type: 7, rot: 0, exists: 1 };
+        grid[91] = { type: 3, rot: 0, exists: 1 };
+
+        grid[108] = { type: 7, rot: 1, exists: 1 };
+        grid[109] = { type: 3, rot: 0, exists: 1 };
+    } else if (level == 1) { // Vault
+        grid[206] = { type: 8, rot: 0, exists: 1 };
+        grid[207] = { type: 8, rot: 0, exists: 1 };
+        grid[185] = { type: 2, rot: 0, exists: 1 };
+        grid[186] = { type: 6, rot: 0, exists: 1 };
+        grid[187] = { type: 4, rot: 0, exists: 1 };
+        grid[188] = { type: 7, rot: 2, exists: 1 };
+        grid[189] = { type: 7, rot: 3, exists: 1 };
+        grid[190] = { type: 7, rot: 3, exists: 1 };
+        grid[191] = { type: 7, rot: 2, exists: 1 };
+        grid[192] = { type: 7, rot: 1, exists: 1 };
+        grid[170] = { type: 7, rot: 1, exists: 1 };
+        grid[171] = { type: 7, rot: 3, exists: 1 };
+        grid[172] = { type: 7, rot: 0, exists: 1 };
+        grid[173] = { type: 7, rot: 3, exists: 1 };
+        grid[174] = { type: 7, rot: 1, exists: 1 };
+        grid[149] = { type: 2, rot: 0, exists: 1 };
+        grid[150] = { type: 6, rot: 0, exists: 1 };
+        grid[151] = { type: 4, rot: 0, exists: 1 };
+        grid[152] = { type: 7, rot: 0, exists: 1 };
+        grid[153] = { type: 7, rot: 3, exists: 1 };
+        grid[154] = { type: 9, rot: 0, exists: 1 };
+        grid[155] = { type: 7, rot: 3, exists: 1 };
+        grid[156] = { type: 7, rot: 0, exists: 1 };
+        grid[131] = { type: 2, rot: 0, exists: 1 };
+        grid[132] = { type: 6, rot: 0, exists: 1 };
+        grid[133] = { type: 4, rot: 0, exists: 1 };
+        grid[134] = { type: 7, rot: 0, exists: 1 };
+        grid[135] = { type: 7, rot: 1, exists: 1 };
+        grid[136] = { type: 7, rot: 0, exists: 1 };
+        grid[137] = { type: 7, rot: 3, exists: 1 };
+        grid[138] = { type: 7, rot: 0, exists: 1 };
+        grid[116] = { type: 7, rot: 1, exists: 1 };
+        grid[117] = { type: 7, rot: 3, exists: 1 };
+        grid[118] = { type: 7, rot: 0, exists: 1 };
+        grid[119] = { type: 7, rot: 0, exists: 1 };
+        grid[120] = { type: 7, rot: 0, exists: 1 };
+        grid[24] = { type: 1, rot: 0, exists: 1 };
+        grid[26] = { type: 2, rot: 3, exists: 1 };
+        grid[6] = { type: 2, rot: 3, exists: 1 };
+        grid[7] = { type: 3, rot: 0, exists: 1 };
+    } else if (level == 2) { // Nuke
+        grid[190] = { type: 4, rot: 0, exists: 1 };
+        grid[170] = { type: 3, rot: 2, exists: 1 };
+        grid[171] = { type: 3, rot: 3, exists: 1 };
+        grid[152] = { type: 3, rot: 1, exists: 1 };
+        grid[153] = { type: 3, rot: 0, exists: 1 };
+    } else if (level == 3) {
+        grid[54] = { type: 2, rot: 1, exists: 1 };
+        grid[55] = { type: 3, rot: 1, exists: 1 };
+        grid[56] = { type: 4, rot: 1, exists: 1 };
+        grid[57] = { type: 5, rot: 1, exists: 1 };
+        grid[58] = { type: 6, rot: 1, exists: 1 };
+        grid[59] = { type: 7, rot: 1, exists: 1 };
+        grid[60] = { type: 9, rot: 1, exists: 1 };
+        grid[61] = { type: 8, rot: 1, exists: 1 };
+        grid[62] = { type: 1, rot: 1, exists: 1 };
+        grid[36] = { type: 2, rot: 2, exists: 1 };
+        grid[37] = { type: 3, rot: 2, exists: 1 };
+        grid[38] = { type: 4, rot: 2, exists: 1 };
+        grid[39] = { type: 5, rot: 2, exists: 1 };
+        grid[40] = { type: 6, rot: 2, exists: 1 };
+        grid[41] = { type: 7, rot: 2, exists: 1 };
+        grid[42] = { type: 9, rot: 2, exists: 1 };
+        grid[43] = { type: 8, rot: 2, exists: 1 };
+        grid[44] = { type: 1, rot: 2, exists: 1 };
+        grid[18] = { type: 2, rot: 3, exists: 1 };
+        grid[19] = { type: 3, rot: 3, exists: 1 };
+        grid[20] = { type: 4, rot: 3, exists: 1 };
+        grid[21] = { type: 5, rot: 3, exists: 1 };
+        grid[22] = { type: 6, rot: 3, exists: 1 };
+        grid[23] = { type: 7, rot: 3, exists: 1 };
+        grid[24] = { type: 9, rot: 3, exists: 1 };
+        grid[25] = { type: 8, rot: 3, exists: 1 };
+        grid[26] = { type: 1, rot: 3, exists: 1 };
+        grid[0] = { type: 2, rot: 0, exists: 1 };
+        grid[1] = { type: 3, rot: 0, exists: 1 };
+        grid[2] = { type: 4, rot: 0, exists: 1 };
+        grid[3] = { type: 5, rot: 0, exists: 1 };
+        grid[4] = { type: 6, rot: 0, exists: 1 };
+        grid[5] = { type: 7, rot: 0, exists: 1 };
+        grid[6] = { type: 9, rot: 0, exists: 1 };
+        grid[7] = { type: 8, rot: 0, exists: 1 };
+        grid[8] = { type: 1, rot: 0, exists: 1 };
+    }
+}
+
 // RIGHT 0
 // DOWN 1
 // LEFT 2
@@ -630,106 +758,7 @@ void step() {
     do_movers();
 }
 
-// Nuke
-grid[190] = { type: 4, rot: 0, exists: 1 };
-grid[170] = { type: 3, rot: 2, exists: 1 };
-grid[171] = { type: 3, rot: 3, exists: 1 };
-grid[152] = { type: 3, rot: 1, exists: 1 };
-grid[153] = { type: 3, rot: 0, exists: 1 };
-
-// Vault
-/*grid[206] = { type: 8, rot: 0, exists: 1 };
-grid[207] = { type: 8, rot: 0, exists: 1 };
-grid[185] = { type: 2, rot: 0, exists: 1 };
-grid[186] = { type: 6, rot: 0, exists: 1 };
-grid[187] = { type: 4, rot: 0, exists: 1 };
-grid[188] = { type: 7, rot: 2, exists: 1 };
-grid[189] = { type: 7, rot: 3, exists: 1 };
-grid[190] = { type: 7, rot: 3, exists: 1 };
-grid[191] = { type: 7, rot: 2, exists: 1 };
-grid[192] = { type: 7, rot: 1, exists: 1 };
-grid[170] = { type: 7, rot: 1, exists: 1 };
-grid[171] = { type: 7, rot: 3, exists: 1 };
-grid[172] = { type: 7, rot: 0, exists: 1 };
-grid[173] = { type: 7, rot: 3, exists: 1 };
-grid[174] = { type: 7, rot: 1, exists: 1 };
-grid[149] = { type: 2, rot: 0, exists: 1 };
-grid[150] = { type: 6, rot: 0, exists: 1 };
-grid[151] = { type: 4, rot: 0, exists: 1 };
-grid[152] = { type: 7, rot: 0, exists: 1 };
-grid[153] = { type: 7, rot: 3, exists: 1 };
-grid[154] = { type: 9, rot: 0, exists: 1 };
-grid[155] = { type: 7, rot: 3, exists: 1 };
-grid[156] = { type: 7, rot: 0, exists: 1 };
-grid[131] = { type: 2, rot: 0, exists: 1 };
-grid[132] = { type: 6, rot: 0, exists: 1 };
-grid[133] = { type: 4, rot: 0, exists: 1 };
-grid[134] = { type: 7, rot: 0, exists: 1 };
-grid[135] = { type: 7, rot: 1, exists: 1 };
-grid[136] = { type: 7, rot: 0, exists: 1 };
-grid[137] = { type: 7, rot: 3, exists: 1 };
-grid[138] = { type: 7, rot: 0, exists: 1 };
-grid[116] = { type: 7, rot: 1, exists: 1 };
-grid[117] = { type: 7, rot: 3, exists: 1 };
-grid[118] = { type: 7, rot: 0, exists: 1 };
-grid[119] = { type: 7, rot: 0, exists: 1 };
-grid[120] = { type: 7, rot: 0, exists: 1 };
-grid[24] = { type: 1, rot: 0, exists: 1 };
-grid[26] = { type: 2, rot: 3, exists: 1 };
-grid[6] = { type: 2, rot: 3, exists: 1 };
-grid[7] = { type: 3, rot: 0, exists: 1 };*/
-
-// Idk
-/*grid[1] = { type: 4, rot: 0, exists: 1 };
-grid[22] = { type: 4, rot: 0, exists: 1 };
-grid[54] = { type: 4, rot: 0, exists: 1 };
-grid[75] = { type: 4, rot: 0, exists: 1 };
-
-grid[21] = { type: 2, rot: 0, exists: 1 };
-
-grid[90] = { type: 7, rot: 0, exists: 1 };
-grid[91] = { type: 3, rot: 0, exists: 1 };
-
-grid[108] = { type: 7, rot: 1, exists: 1 };
-grid[109] = { type: 3, rot: 0, exists: 1 };*/
-
-// Idk2
-/*grid[54] = { type: 2, rot: 1, exists: 1 };
-grid[55] = { type: 3, rot: 1, exists: 1 };
-grid[56] = { type: 4, rot: 1, exists: 1 };
-grid[57] = { type: 5, rot: 1, exists: 1 };
-grid[58] = { type: 6, rot: 1, exists: 1 };
-grid[59] = { type: 7, rot: 1, exists: 1 };
-grid[60] = { type: 9, rot: 1, exists: 1 };
-grid[61] = { type: 8, rot: 1, exists: 1 };
-grid[62] = { type: 1, rot: 1, exists: 1 };
-grid[36] = { type: 2, rot: 2, exists: 1 };
-grid[37] = { type: 3, rot: 2, exists: 1 };
-grid[38] = { type: 4, rot: 2, exists: 1 };
-grid[39] = { type: 5, rot: 2, exists: 1 };
-grid[40] = { type: 6, rot: 2, exists: 1 };
-grid[41] = { type: 7, rot: 2, exists: 1 };
-grid[42] = { type: 9, rot: 2, exists: 1 };
-grid[43] = { type: 8, rot: 2, exists: 1 };
-grid[44] = { type: 1, rot: 2, exists: 1 };
-grid[18] = { type: 2, rot: 3, exists: 1 };
-grid[19] = { type: 3, rot: 3, exists: 1 };
-grid[20] = { type: 4, rot: 3, exists: 1 };
-grid[21] = { type: 5, rot: 3, exists: 1 };
-grid[22] = { type: 6, rot: 3, exists: 1 };
-grid[23] = { type: 7, rot: 3, exists: 1 };
-grid[24] = { type: 9, rot: 3, exists: 1 };
-grid[25] = { type: 8, rot: 3, exists: 1 };
-grid[26] = { type: 1, rot: 3, exists: 1 };
-grid[0] = { type: 2, rot: 0, exists: 1 };
-grid[1] = { type: 3, rot: 0, exists: 1 };
-grid[2] = { type: 4, rot: 0, exists: 1 };
-grid[3] = { type: 5, rot: 0, exists: 1 };
-grid[4] = { type: 6, rot: 0, exists: 1 };
-grid[5] = { type: 7, rot: 0, exists: 1 };
-grid[6] = { type: 9, rot: 0, exists: 1 };
-grid[7] = { type: 8, rot: 0, exists: 1 };
-grid[8] = { type: 1, rot: 0, exists: 1 };*/
+import_level(0)
 
 
 while (true) {
@@ -793,6 +822,12 @@ while (true) {
             } else {
                 paused = true;
             }
+        } else if (key == 'z') {
+            next_level();
+        } else if (key == 'x') {
+            previous_level();
+        } else if (key == 'd') {
+            debug = !debug;
         } else {
             if ((key >= ((int)'0')) && (key <= ((int)'9'))) {
                 placement_type = key - 39

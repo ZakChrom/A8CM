@@ -17,4 +17,4 @@ for i in range(len(ogstuff[0])):
     if i % 6 == 5:
         print("")
 
-for i in range(4): print(f'const var bitmap{i} = "{stuff[i]}";')
+for i in range(4): print(f'const var textures_{["left", "down", "right", "up"][i]} = "{stuff[i]}";')
