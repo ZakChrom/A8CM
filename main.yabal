@@ -874,6 +874,8 @@ while (true) {
             next_level();
         } else if (key == 'd') {
             debug = !debug;
+        } else if (key == 'c') {
+            reset();
         } else {
             if ((key >= ((int)'0')) && (key <= ((int)'9'))) {
                 placement_type = key - 39

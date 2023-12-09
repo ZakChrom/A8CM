@@ -7,6 +7,7 @@ Right click: Delete cell<br/>
 1-9: Select cell<br/>
 Q/E: Rotate cell<br/>
 Z/X: Switch level<br/>
+C: Clear level<br/>
 
 ### Modifying textures
 To add new textures modify the bitmap[1-4] files with the textures and then run `bitmap.py`.
