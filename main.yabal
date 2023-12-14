@@ -24,7 +24,7 @@ int placement_rotation = 0;
 int lastKey = 168;
 bool debug = false;
 
-const int max_levels = 5;
+const int max_levels = 6;
 int level = 0;
 
 const int mouse_color = get_color(36, 36, 36);
@@ -780,6 +780,39 @@ void import_level(int level) {
         grid[157] = { type: 4, rot: 0, exists: 1 };
         grid[158] = { type: 4, rot: 0, exists: 1 };
         grid[54] = { type: 2, rot: 0, exists: 1 };
+    } else if (level == 5) {
+        grid[297] = { type: 4, rot: 0, exists: 1 };
+        grid[279] = { type: 3, rot: 2, exists: 1 };
+        grid[280] = { type: 2, rot: 1, exists: 1 };
+        grid[281] = { type: 1, rot: 0, exists: 1 };
+        grid[259] = { type: 5, rot: 0, exists: 1 };
+        grid[261] = { type: 4, rot: 0, exists: 1 };
+        grid[262] = { type: 1, rot: 0, exists: 1 };
+        grid[225] = { type: 3, rot: 0, exists: 1 };
+        grid[205] = { type: 4, rot: 0, exists: 1 };
+        grid[207] = { type: 8, rot: 0, exists: 1 };
+        grid[208] = { type: 6, rot: 0, exists: 1 };
+        grid[209] = { type: 3, rot: 2, exists: 1 };
+        grid[210] = { type: 6, rot: 0, exists: 1 };
+        grid[188] = { type: 3, rot: 1, exists: 1 };
+        grid[190] = { type: 6, rot: 0, exists: 1 };
+        grid[171] = { type: 8, rot: 0, exists: 1 };
+        grid[172] = { type: 6, rot: 0, exists: 1 };
+        grid[173] = { type: 2, rot: 2, exists: 1 };
+        grid[151] = { type: 5, rot: 0, exists: 1 };
+        grid[153] = { type: 4, rot: 0, exists: 1 };
+        grid[156] = { type: 3, rot: 3, exists: 1 };
+        grid[137] = { type: 1, rot: 0, exists: 1 };
+        grid[138] = { type: 2, rot: 2, exists: 1 };
+        grid[119] = { type: 2, rot: 2, exists: 1 };
+        grid[120] = { type: 2, rot: 2, exists: 1 };
+        grid[100] = { type: 2, rot: 1, exists: 1 };
+        grid[101] = { type: 4, rot: 0, exists: 1 };
+        grid[102] = { type: 2, rot: 3, exists: 1 };
+        grid[82] = { type: 2, rot: 0, exists: 1 };
+        grid[83] = { type: 2, rot: 0, exists: 1 };
+        grid[8] = { type: 8, rot: 0, exists: 1 };
+        grid[9] = { type: 8, rot: 0, exists: 1 };
     }
 }
 
